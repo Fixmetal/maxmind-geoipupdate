@@ -1,4 +1,4 @@
-FROM golang:1.15.6-alpine3.12 AS builder
+FROM golang:1.15-alpine3.12 AS builder
 
 LABEL maintainer="Takeru Sato <type.in.type@gmail.com>"
 LABEL maintainer2="Simone M. Zucchi <simone.zucchi@gmail.com>"
@@ -34,7 +34,7 @@ RUN git checkout tags/${GEOIP_UPDATE_VER} && \
 FROM alpine:3.12 AS image
 
 ARG CA_CERTIFICATES_VER=20191127-r4
-ARG TZDATA_VER=2020c-r1
+ARG TZDATA_VER=2020f-r0
 
 ENV GEOIP_CONF_FILE /usr/local/etc/GeoIP.conf
 ENV GEOIP_DB_DIR    /usr/share/GeoIP
@@ -47,7 +47,7 @@ COPY --from=builder /app/geoipupdate/build/geoipupdate /usr/local/bin/
 COPY sigil /usr/local/bin/
 
 RUN apk add --no-cache \
-      ca-certificates=${CA_CERTIFICATES_VER} && \
+      ca-certificates=${CA_CERTIFICATES_VER} \
       tzdata=${TZDATA_VER} && \
     cp /usr/share/zoneinfo/Europe/Rome /etc/localtime && \
     echo "Europe/Rome" > /etc/timezone && \
