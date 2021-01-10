@@ -1,4 +1,4 @@
-FROM golang:1.15.6-alpine3.12 AS geoip
+FROM golang:1.15.6-alpine3.12 AS builder
 
 LABEL maintainer="Takeru Sato <type.in.type@gmail.com>"
 LABEL maintainer2="Simone M. Zucchi <simone.zucchi@gmail.com>"
@@ -22,8 +22,7 @@ RUN apk add --no-cache \
       make=${MAKE_VER} \
       libc-dev=${LIBC_DEV_VER} \
       git=${GIT_VER} && \
-    git clone ${GEOIP_UPDATE_URL} && \
-    git clone ${SIGIL_URL}
+    git clone ${GEOIP_UPDATE_URL}
 
 WORKDIR /app/geoipupdate
 
