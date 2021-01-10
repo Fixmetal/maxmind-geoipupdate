@@ -1,20 +1,48 @@
-FROM golang:1.15.6-alpine3.12 as builder
+FROM golang:1.15.6-alpine3.12 AS builder
 
 LABEL maintainer="Takeru Sato <type.in.type@gmail.com>"
+LABEL maintainer2="Simone M. Zucchi <simone.zucchi@gmail.com>"
+
+ARG CURL_VER=7.69.1-r3
+ARG GCC_VER=9.3.0-r2
+ARG MAKE_VER=4.3-r0
+ARG LIBC_DEV_VER=0.7.2-r3
+ARG GIT_VER=2.26.2-r0
 
 # ENV GO111MODULE           on
-ENV GEOIP_UPDATE_VERSION  4.3.0
-ENV SRC_DL_URL_PREF       https://github.com/maxmind/geoipupdate/archive
-ENV SRC_PATH              /go/src/github.com/maxmind/geoipupdate
+ARG GEOIP_UPDATE_URL=https://github.com/maxmind/geoipupdate.git
+ARG GEOIP_UPDATE_VER=v4.6.0
+ARG SIGIL_URL=https://github.com/gliderlabs/sigil.git
+ARG SIGIL_VER=v0.4.0
 
-RUN mkdir -p /go/src/github.com/maxmind/
-RUN apk add --update --no-cache curl gcc make libc-dev git
-RUN curl -L "${SRC_DL_URL_PREF}/v${GEOIP_UPDATE_VERSION}.tar.gz" | tar -zxC /go/src/github.com/maxmind/
-RUN mv "${SRC_PATH}-${GEOIP_UPDATE_VERSION}" /go/src/github.com/maxmind/geoipupdate
-RUN cd "${SRC_PATH}" && make build/geoipupdate
-RUN curl -L "https://github.com/gliderlabs/sigil/releases/download/v0.4.0/sigil_0.4.0_$(uname -sm|tr \  _).tgz" | tar -zxC /usr/local/bin
+WORKDIR /app
 
-FROM alpine:3.12
+RUN apk add --no-cache \
+      gcc=${GCC_VER} \
+      make=${MAKE_VER} \
+      libc-dev=${LIBC_DEV_VER} \
+      git=${GIT_VER} && \
+    git clone ${GEOIP_UPDATE_URL} && \
+    git clone ${SIGIL_URL}
+
+WORKDIR /app/geoipupdate
+
+RUN git checkout tags/${GEOIP_UPDATE_VER} && \
+    make build/geoipupdate && \
+    chmod +x build/geoipupdate
+
+WORKDIR /app/sigil
+
+RUN git checkout tags/${SIGIL_VER} && \
+    sed -i 's/ARCHITECTURE = amd64/ARCHITECTURE = \$\/(shell uname -m\)/' Makefile && \
+    make deps && \
+    glu build linux ./cmd
+
+########## My Image
+FROM alpine:3.12 AS image
+
+ARG CA_CERTIFICATES_VER=20191127-r4
+ARG TZDATA_VER=2020c-r1
 
 ENV GEOIP_CONF_FILE /usr/local/etc/GeoIP.conf
 ENV GEOIP_DB_DIR    /usr/share/GeoIP
@@ -23,9 +51,15 @@ ENV SCHEDULE        "55 20 * * *"
 COPY GeoIP.conf.tmpl ${GEOIP_CONF_FILE}.tmpl
 COPY run-geoipupdate /usr/local/bin/run-geoipupdate
 COPY run /usr/local/bin/
-COPY --from=builder /go/src/github.com/maxmind/geoipupdate/build/geoipupdate /usr/local/bin/
-COPY --from=builder /usr/local/bin/sigil /usr/local/bin/
+COPY --from=builder /app/geoipupdate/build/geoipupdate /usr/local/bin/
+COPY --from=builder /app/sigil/build/linux/sigil /usr/local/bin/
 
-RUN apk add --update --no-cache ca-certificates
+RUN apk add --no-cache \
+      ca-certificates=${CA_CERTIFICATES_VER} && \
+    apk --no-cache add \
+      tzdata=${TZDATA_VER} && \
+    cp /usr/share/zoneinfo/Europe/Rome /etc/localtime && \
+    echo "Europe/Rome" > /etc/timezone && \
+    apk del tzdata
 
-CMD /usr/local/bin/run
+ENTRYPOINT [ "run" ]
