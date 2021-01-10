@@ -1,4 +1,4 @@
-FROM golang:1.15.6-alpine3.12 AS builder
+FROM golang:1.15.6-alpine3.12 AS geoip
 
 LABEL maintainer="Takeru Sato <type.in.type@gmail.com>"
 LABEL maintainer2="Simone M. Zucchi <simone.zucchi@gmail.com>"
@@ -9,11 +9,11 @@ ARG MAKE_VER=4.3-r0
 ARG LIBC_DEV_VER=0.7.2-r3
 ARG GIT_VER=2.26.2-r0
 
-# ENV GO111MODULE           on
 ARG GEOIP_UPDATE_URL=https://github.com/maxmind/geoipupdate.git
 ARG GEOIP_UPDATE_VER=v4.6.0
-ARG SIGIL_URL=https://github.com/gliderlabs/sigil.git
-ARG SIGIL_VER=v0.4.0
+
+# https://github.com/golang/go/wiki/GoArm
+ENV GOARCH=arm64
 
 WORKDIR /app
 
@@ -31,13 +31,6 @@ RUN git checkout tags/${GEOIP_UPDATE_VER} && \
     make build/geoipupdate && \
     chmod +x build/geoipupdate
 
-WORKDIR /app/sigil
-
-RUN git checkout tags/${SIGIL_VER} && \
-    sed -i 's/ARCHITECTURE = amd64/ARCHITECTURE = \$\/(shell uname -m\)/' Makefile && \
-    make deps && \
-    glu build linux ./cmd
-
 ########## My Image
 FROM alpine:3.12 AS image
 
@@ -52,7 +45,7 @@ COPY GeoIP.conf.tmpl ${GEOIP_CONF_FILE}.tmpl
 COPY run-geoipupdate /usr/local/bin/run-geoipupdate
 COPY run /usr/local/bin/
 COPY --from=builder /app/geoipupdate/build/geoipupdate /usr/local/bin/
-COPY --from=builder /app/sigil/build/linux/sigil /usr/local/bin/
+COPY sigil /usr/local/bin/
 
 RUN apk add --no-cache \
       ca-certificates=${CA_CERTIFICATES_VER} && \
