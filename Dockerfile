@@ -48,7 +48,6 @@ COPY sigil /usr/local/bin/
 
 RUN apk add --no-cache \
       ca-certificates=${CA_CERTIFICATES_VER} && \
-    apk --no-cache add \
       tzdata=${TZDATA_VER} && \
     cp /usr/share/zoneinfo/Europe/Rome /etc/localtime && \
     echo "Europe/Rome" > /etc/timezone && \
