@@ -3,4 +3,4 @@
 !GeoIP.conf.tmpl
 !run
 !run-geoipupdate
-1sigil
+!sigil
