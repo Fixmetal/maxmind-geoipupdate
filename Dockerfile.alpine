@@ -31,9 +31,10 @@ RUN git checkout tags/${GEOIP_UPDATE_VER} && \
     chmod +x build/geoipupdate
 
 ########## My Image
-FROM debian:buster-slim AS image
+FROM alpine:3.12 AS image
 
-ARG CA_CERTIFICATES_VER=202*
+ARG CA_CERTIFICATES_VER=20191127-r4
+ARG TZDATA_VER=2020f-r0
 
 ENV GEOIP_CONF_FILE /usr/local/etc/GeoIP.conf
 ENV GEOIP_DB_DIR    /usr/share/GeoIP
@@ -45,10 +46,11 @@ COPY run /usr/local/bin/
 COPY --from=builder /app/geoipupdate/build/geoipupdate /usr/local/bin/
 COPY sigil /usr/local/bin/
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-      ca-certificates=${CA_CERTIFICATES_VER} && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+      ca-certificates=${CA_CERTIFICATES_VER} \
+      tzdata=${TZDATA_VER} && \
+    cp /usr/share/zoneinfo/Europe/Rome /etc/localtime && \
+    echo "Europe/Rome" > /etc/timezone && \
+    apk del tzdata
 
 ENTRYPOINT [ "run" ]
