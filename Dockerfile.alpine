@@ -39,6 +39,7 @@ ARG TZDATA_VER=2020f-r0
 ENV GEOIP_CONF_FILE /usr/local/etc/GeoIP.conf
 ENV GEOIP_DB_DIR    /usr/share/GeoIP
 ENV SCHEDULE        "55 20 * * *"
+ENV TZ              "Europe/Rome"
 
 COPY GeoIP.conf.tmpl ${GEOIP_CONF_FILE}.tmpl
 COPY run-geoipupdate /usr/local/bin/run-geoipupdate
@@ -50,7 +51,7 @@ RUN apk add --no-cache \
       ca-certificates=${CA_CERTIFICATES_VER} \
       tzdata=${TZDATA_VER} && \
     cp /usr/share/zoneinfo/Europe/Rome /etc/localtime && \
-    echo "Europe/Rome" > /etc/timezone && \
+    echo "${TZ}" > /etc/timezone && \
     apk del tzdata
 
 ENTRYPOINT [ "run" ]
