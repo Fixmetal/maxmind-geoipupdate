@@ -34,7 +34,7 @@ RUN git checkout tags/${GEOIP_UPDATE_VER} && \
 FROM alpine:3.12 AS image
 
 ARG CA_CERTIFICATES_VER=20191127-r4
-ARG TZDATA_VER=2020f-r0
+ARG TZDATA_VER=2021a-r0
 
 ENV GEOIP_CONF_FILE /usr/local/etc/GeoIP.conf
 ENV GEOIP_DB_DIR    /usr/share/GeoIP
